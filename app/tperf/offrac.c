@@ -113,7 +113,10 @@ int cnn(void* out_buf, int req_size, void* in_buf){
     }
 
     // Copy one image from the buffer
-    memcpy(input_data, in_buf, IMAGE_SIZE * sizeof(float));
+    uint8_t* input_bytes = (uint8_t*)in_buf;
+    for (int i = 0; i < IMAGE_SIZE; i++) {
+	  input_data[i] = (float)input_bytes[i];
+    }
 
     // Create an input tensor for this single image
     TF_Tensor* input_tensor = TF_NewTensor(TF_FLOAT, input_dims, 4, input_data, IMAGE_SIZE * sizeof(float), &NoOpDeallocator, NULL);
