@@ -11,7 +11,10 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#include <tensorflow/c/c_api.h>
+
 #define MAX_BUF_SIZE 20480
+#define IMAGE_SIZE (64 * 64 * 3)
 
 // Enum for offrac supporting functions
 enum {
@@ -24,5 +27,6 @@ enum {
 int topk(void* out_buf, int req_size, void* in_buf);
 int norm(void* out_buf, int req_size, void* in_buf);
 int logit(void* out_buf, int req_size, void* in_buf);
+int cnn(void* out_buf, int req_size, void* in_buf);
 
 #endif

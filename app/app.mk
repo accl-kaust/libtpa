@@ -4,11 +4,14 @@
 
 PKG_CONFIG = PKG_CONFIG_PATH=$(SRC_ROOT)/build pkg-config
 
+
+CFLAGS += -I$(HOME)/.anaconda3/envs/cnn_offrac/lib/include
 CFLAGS += -I$(SRC_ROOT)/include/lib -Iinclude
 CFLAGS += $(shell $(PKG_CONFIG) --cflags libtpa-internal)
 
 LDFLAGS := $(shell $(PKG_CONFIG) --libs --static libtpa-internal)
 LDFLAGS += -lm
+LDFLAGS += -L$(HOME)/.anaconda3/envs/cnn_offrac/lib/lib -ltensorflow -pthread -ldl -lm
 
 OBJ_DIR = $(OBJ_ROOT)/app/$(APP)
 BIN_DIR = $(BIN_ROOT)/app
