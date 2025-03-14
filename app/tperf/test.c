@@ -217,7 +217,7 @@ static int offrac_process(struct test_thread *thread, struct connection *conn, s
 	} else if (conn->func == NORM){
 	      norm(mbuf->data, conn->req_size, conn->reassemble.reassembly_buf);
 	} else if (conn->func == CNN){
-	      cnn(mbuf->data, conn->req_size, conn->reassemble.reassembly_buf);
+	  cnn(mbuf->data, conn->req_size, conn->reassemble.reassembly_buf, &conn->tf_obj);
 	}
 
 	iov[nr_iov].iov_base = mbuf->data;

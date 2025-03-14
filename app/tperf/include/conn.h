@@ -6,6 +6,7 @@
 #ifndef _CONN_H_
 #define _CONN_H_
 
+#include "offrac.h"
 /*
  * 1000 is really handy for tcp debugging; note that the default message
  * is 1 byte for rr and crr test.
@@ -39,6 +40,7 @@ struct rw_stats {
 	uint64_t bytes_write;
 } __attribute__((__aligned__(64)));
 
+
 struct connection {
 	struct test_thread *thread;
 
@@ -58,6 +60,9 @@ struct connection {
         uint8_t fpga_srv;
         uint32_t pkt_idx;
 
+  
+
+    
        struct {
 	     uint8_t *reassembly_buf;
 	     size_t off;
@@ -68,6 +73,7 @@ struct connection {
 		size_t budget;
 	} read;
 
+  cnn_tf tf_obj;
 	/*
 	 * Here we use the write.budget to control how much we should
 	 * write each time.

@@ -8,6 +8,7 @@
 #include "tensorflow/c/c_api.h"
 #include "offrac.h"
 #include "tperf.h"
+
 void NoOpDeallocator(void* data, size_t a, void* b) {}
 // Comparison function for qsort (descending order)
 int compare_desc(const void *a, const void *b) {
@@ -85,33 +86,10 @@ int logit(void* out_buf , int req_size, void* in_buf) {
     return size;
 }
 
-int cnn(void* out_buf, int req_size, void* in_buf){
-    // Load the TensorFlow model (SavedModel format)
+int cnn(void* out_buf, int req_size, void* in_buf, cnn_tf *tf_obj){
+  
 
-   TF_Graph* graph = TF_NewGraph();
-   TF_Status* status = TF_NewStatus();
-
-    // Define session options and load the SavedModel
-    TF_SessionOptions* session_opts = TF_NewSessionOptions();
-    TF_Buffer* run_options = NULL;
-
-    const char* tags = "serve";
-
-    long start_time = get_time_in_ns();
-    TF_Session* session = TF_LoadSessionFromSavedModel(session_opts, run_options, "app/tperf/tf/saved_model", &tags, 1, graph, NULL, status);
-    long end_time = get_time_in_ns();
-    printf("Total time to load model : %ld\n",end_time-start_time);
-    // Prepare input tensor dimensions for a single image (not batch)
     int64_t input_dims[] = {1, 64, 64, 3};  // (1 image, 64x64, RGB)
-
-    // Get input and output tensor names
-    TF_Output input_op = {TF_GraphOperationByName(graph, "serving_default_input_1"), 0};
-    TF_Output output_op = {TF_GraphOperationByName(graph, "StatefulPartitionedCall"), 0};
-
-    if (input_op.oper == NULL || output_op.oper == NULL) {
-        fprintf(stderr, "Failed to get input/output tensor\n");
-        return -1;
-    }
 
     float* input_data = (float*) malloc(IMAGE_SIZE*sizeof(float));
     if (input_data == NULL) {
@@ -130,19 +108,12 @@ int cnn(void* out_buf, int req_size, void* in_buf){
 
     // Run inference
     TF_Tensor* output_tensor = NULL;
-    TF_SessionRun(session, NULL, &input_op, &input_tensor, 1, &output_op, &output_tensor, 1, NULL, 0, NULL, status);
+    TF_SessionRun(tf_obj->session, NULL, &tf_obj->input_op, &input_tensor, 1, &tf_obj->output_op, &output_tensor, 1, NULL, 0, NULL, tf_obj->status);
 
     // Retrieve and print the result for this image
     void* buff = TF_TensorData(output_tensor);
     float* offsets = (float*)buff;
 
-    /*
-      printf("Image %d result:\n", i);
-      for (int j = 0; j < 10; j++) {
-      printf("%f\n", offsets[j]);
-      }
-    */
-    // Store the result back in buf (in-place update)
     // TODO: update to output
     memcpy(out_buf, offsets, 10 * sizeof(float));
     
@@ -153,10 +124,6 @@ int cnn(void* out_buf, int req_size, void* in_buf){
     
     memcpy(out_buf, buff, 10 * sizeof(float));
     // Clean up global resources
-    TF_DeleteSession(session, status);
-    TF_DeleteSessionOptions(session_opts);
-    TF_DeleteGraph(graph);
-    TF_DeleteStatus(status);
 
     return 10 * sizeof(float);
 }
