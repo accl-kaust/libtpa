@@ -7,12 +7,13 @@
 #include <string.h>
 #include "tensorflow/c/c_api.h"
 #include "offrac.h"
-
+#include "tperf.h"
 void NoOpDeallocator(void* data, size_t a, void* b) {}
 // Comparison function for qsort (descending order)
 int compare_desc(const void *a, const void *b) {
     return (*(uint32_t *)b - *(uint32_t *)a);
 }
+
 
 // return the buf size after topk, ideally should be k
 // return -1 if error
@@ -86,14 +87,20 @@ int logit(void* out_buf , int req_size, void* in_buf) {
 
 int cnn(void* out_buf, int req_size, void* in_buf){
     // Load the TensorFlow model (SavedModel format)
-    TF_Graph* graph = TF_NewGraph();
-    TF_Status* status = TF_NewStatus();
+
+   TF_Graph* graph = TF_NewGraph();
+   TF_Status* status = TF_NewStatus();
 
     // Define session options and load the SavedModel
     TF_SessionOptions* session_opts = TF_NewSessionOptions();
     TF_Buffer* run_options = NULL;
+
     const char* tags = "serve";
-    TF_Session* session = TF_LoadSessionFromSavedModel(session_opts, run_options, "tf/saved_model", &tags, 1, graph, NULL, status);
+
+    long start_time = get_time_in_ns();
+    TF_Session* session = TF_LoadSessionFromSavedModel(session_opts, run_options, "app/tperf/tf/saved_model", &tags, 1, graph, NULL, status);
+    long end_time = get_time_in_ns();
+    printf("Total time to load model : %ld\n",end_time-start_time);
     // Prepare input tensor dimensions for a single image (not batch)
     int64_t input_dims[] = {1, 64, 64, 3};  // (1 image, 64x64, RGB)
 
@@ -138,12 +145,12 @@ int cnn(void* out_buf, int req_size, void* in_buf){
     // Store the result back in buf (in-place update)
     // TODO: update to output
     memcpy(out_buf, offsets, 10 * sizeof(float));
-
+    
     // Clean up for this image
     TF_DeleteTensor(input_tensor);
     TF_DeleteTensor(output_tensor);
-
-
+    
+    
     memcpy(out_buf, buff, 10 * sizeof(float));
     // Clean up global resources
     TF_DeleteSession(session, status);

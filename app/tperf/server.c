@@ -109,6 +109,7 @@ static void *server_thread_loop(void *arg)
 
 int tperf_server(void)
 {
+        setenv("TF_CPP_MIN_LOG_LEVEL", "3", 1);
 	spawn_test_threads(server_thread_loop);
 
 	while (1)
