@@ -155,38 +155,6 @@ int conn_on_read(struct connection *conn)
 	return 0;
 }
 
-/*
-static int emit_test_info(struct connection *conn)
-{
-	struct test_info *info = &conn->info;
-	//int ret;
-
-	if (conn->info_off == sizeof(struct test_info))
-		return 0;
-
-	info->test = conn->test;
-	info->integrity_enabled = conn->integrity_enabled;
-	info->integrity_off = conn->integrity_off;
-	info->enable_zwrite = conn->enable_zwrite;
-	info->message_size = conn->message_size;
-	info->response_size = conn->response_size;
-	info->func = conn->func;
-
-	ret = tpa_write(conn->sid, info, sizeof(*info));
-	if (ret != sizeof(*info)) {
-		if (ret == -1 && errno == EAGAIN)
-			return 0;
-
-		fprintf(stderr, "err_emit_test_info: %s\n", strerror(errno));
-		return -1;
-	}
-
-	//conn->info_off = sizeof(struct test_info);
-
-	return 0;
-}
-*/
-
 static void zwrite_done(void *iov_base, void *iov_param)
 {
 	struct mbuf *mbuf = iov_param;

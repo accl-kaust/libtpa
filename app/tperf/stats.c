@@ -83,29 +83,6 @@ void update_latency(struct connection *conn)
 	conn->last_ns = now;
 }
 
-/* static void show_rr_stats(int loop, struct thread_stats *last_stats) */
-/* { */
-/* 	uint64_t count; */
-/* 	uint64_t sum; */
-/* 	int i; */
-
-/* 	for (i = 0; i < ctx.nr_thread; i++) { */
-/* 		count = ctx.stats[i].latency.count - last_stats[i].latency.count; */
-/* 		sum   = ctx.stats[i].latency.sum   - last_stats[i].latency.sum; */
-
-/* 		printf("%5d %-2s .%d min=%.2fus avg=%.2fus max=%.2fus count=%lu\n", */
-/* 		       loop, test_to_str_short(ctx.test), i, */
-/* 		       to_us(ctx.stats[i].latency.min), */
-/* 		       to_us(sum / (count ? : -1ull)), */
-/* 		       to_us(ctx.stats[i].latency.max), */
-/* 		       count); */
-
-/* 		/\* reset here; though we may have race condition issue *\/ */
-/* 		ctx.stats[i].latency.min = 0; */
-/* 		ctx.stats[i].latency.max = 0; */
-/* 	} */
-/* } */
-
 static void show_rw_stats(int loop, struct thread_stats *last_stats)
 {
 	struct rw_stats stats[ctx.nr_thread];

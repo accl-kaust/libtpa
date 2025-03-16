@@ -26,7 +26,7 @@ static struct connection *create_client_conn(struct test_thread *thread, int sid
 	conn->req_size = ctx.req_size;
 	conn->fpga_srv = ctx.fpga_srv;
 	conn->pkt_idx = 0;
-	 
+
 	switch (conn->test) {
 	case TEST_READ:
 		conn->read.budget  = message_size;

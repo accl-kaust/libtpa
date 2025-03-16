@@ -24,10 +24,10 @@ void init_server_conn(struct connection *conn)
 
 	conn->reassemble.reassembly_buf = (uint8_t *)malloc(conn->req_size);
 	conn->reassemble.off = 0;
-	
+
 	if (conn->func == CNN){
 	  const char* tags = "serve";
-       
+
 	  conn->tf_obj.graph = TF_NewGraph();
 	  conn->tf_obj.status = TF_NewStatus();
 	  conn->tf_obj.session_opts = TF_NewSessionOptions();
@@ -36,13 +36,13 @@ void init_server_conn(struct connection *conn)
 
 	  conn->tf_obj.input_op.oper = TF_GraphOperationByName(conn->tf_obj.graph, "serving_default_input_1");
 	  conn->tf_obj.input_op.index = 0;
-	  
+
 	  conn->tf_obj.output_op.oper = TF_GraphOperationByName(conn->tf_obj.graph, "StatefulPartitionedCall");
 	  conn->tf_obj.output_op.index = 0;
- 
+
 	}
-	
-	
+
+
 	if (conn->reassemble.reassembly_buf == NULL) {
 	      printf("Reassembly buffer Memory allocation failed!\n");
 	      exit(1);

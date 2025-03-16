@@ -87,7 +87,7 @@ int logit(void* out_buf , int req_size, void* in_buf) {
 }
 
 int cnn(void* out_buf, int req_size, void* in_buf, cnn_tf *tf_obj){
-  
+
 
     int64_t input_dims[] = {1, 64, 64, 3};  // (1 image, 64x64, RGB)
 
@@ -116,12 +116,11 @@ int cnn(void* out_buf, int req_size, void* in_buf, cnn_tf *tf_obj){
 
     // TODO: update to output
     memcpy(out_buf, offsets, 10 * sizeof(float));
-    
+
     // Clean up for this image
     TF_DeleteTensor(input_tensor);
     TF_DeleteTensor(output_tensor);
-    
-    
+
     memcpy(out_buf, buff, 10 * sizeof(float));
     // Clean up global resources
 
