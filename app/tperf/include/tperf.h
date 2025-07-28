@@ -20,6 +20,7 @@
 
 #define MIN(a, b)		((a) < (b) ? (a) : (b))
 
+#define HUGEPAGE_SIZE (2 * 1024 * 1024)
 #define TPERF_PORT			4096
 #define BATCH_SIZE			64
 
@@ -54,6 +55,12 @@ struct test_thread {
 
 	uint32_t nr_event;
 	struct event_queue event_queue;
+
+	void* hugepg;
+	uint8_t hugealloc; //true or false
+	uint64_t hugepg_off;
+	uint8_t log;
+	char* log_dir;
 } __attribute__((__aligned__(64)));
 
 struct ctx {
@@ -71,13 +78,17 @@ struct ctx {
 	int enable_zwrite;
 	int port;
 	int quiet;
-        int response_size;
-        int func;
-        int req_size;
-        uint8_t fpga_srv;
+	int response_size;
+	int func;
+	int req_size;
+	uint8_t fpga_srv;
+	uint8_t log;
+	char* log_dir;
 
 	struct test_thread *threads;
 	struct thread_stats *stats;
+
+	pthread_t *tid;
 };
 
 extern struct ctx ctx;

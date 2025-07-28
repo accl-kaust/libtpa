@@ -81,6 +81,19 @@ void update_latency(struct connection *conn)
 	latency->sum += delta;
 
 	conn->last_ns = now;
+
+	if (conn->thread->log){
+		if (conn->thread->hugepg_off < HUGEPAGE_SIZE - 64) {
+			//fprintf(stderr, "Out of hugepage memory!\n");
+
+			char *buffer = (char *)conn->thread->hugepg;
+			char line[22];
+			int len = snprintf(line, sizeof(line), "%ld\n", delta);
+
+			memcpy(buffer + conn->thread->hugepg_off, line, len);
+			conn->thread->hugepg_off += len;
+		}
+	}
 }
 
 static void show_rw_stats(int loop, struct thread_stats *last_stats)

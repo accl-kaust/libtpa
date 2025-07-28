@@ -30,11 +30,13 @@ void usage(void)
 			"  -C nr_conn        specifies the connection to be created for each thread (default: 1)\n"
 			"  -W 0|1            disable/enable zero copy write (default: on)\n"
 			"  -S start_cpu      specifies the starting cpu to bind\n"
-		        "  -Z fpga_server    specifies if server is on CPU or FPGA\n"
-		        "  -X request size   specifies request size in case > message size then issues multi pkt req\n"
-		        "  -F function       specifies function ID to be exec on the server\n"
-                        "  -R response size  specifies response size expected after execution of function\n"
-		        "\n"
+			"  -Z fpga_server    specifies if server is on CPU or FPGA\n"
+			"  -X request size   specifies request size in case > message size then issues multi pkt req\n"
+			"  -F function       specifies function ID to be exec on the server\n"
+			"  -R response size  specifies response size expected after execution of function\n"
+			"  -L log latency    logs latency value if set to 0 to the dir mentioned\n"
+			"  -D log dir        stores log files in specified director\n"
+			"\n"
 			"Server options:\n"
 			"  -s                run in server mode\n"
 			"  -n nr_thread      specifies the thread count (default: 1)\n"
@@ -89,8 +91,9 @@ int parse_options(int argc, char **argv)
 	ctx.func = 0;
 	ctx.req_size = ctx.message_size;
 	ctx.fpga_srv = 0;
-
-	while ((opt = getopt(argc, argv, "c:C:t:d:l:m:n:p:S:W:R:F:X:Z:isqh")) != -1) {
+	ctx.log = 0;
+	ctx.log_dir = "";
+	while ((opt = getopt(argc, argv, "c:C:t:d:l:m:n:p:S:W:R:F:X:Z:L:D:isqh")) != -1) {
 		switch (opt) {
 		case 's':
 			ctx.is_client = 0;
@@ -168,6 +171,18 @@ int parse_options(int argc, char **argv)
 		case 'Z':
 		      PARSE_NUM(ctx.fpga_srv, optarg, NUM_TYPE_NONE, "fpga server?");
 		      break;
+
+		case 'L':
+			PARSE_NUM(ctx.log, optarg, NUM_TYPE_NONE, "log");
+			if (ctx.log != 0 && ctx.log != 1 ) {
+				fprintf(stderr, "invalid port: %d: out of range\n", ctx.log);
+				exit(1);
+			}
+			break;
+
+		case 'D':
+			ctx.log_dir = strdup(optarg);
+			break;
 
 		case 'q':
 			ctx.quiet = 1;

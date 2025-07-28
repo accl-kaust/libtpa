@@ -4,8 +4,18 @@
  * Author: Yuanhan Liu <liuyuanhan.131@bytedance.com>
  */
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <pthread.h>
+#include <unistd.h>
+#include <sched.h>
+#include <sys/mman.h>
+#include <errno.h>
 
 #include "tperf.h"
+
+
+volatile int client_shutdown = 0;
 
 static struct connection *create_client_conn(struct test_thread *thread, int sid)
 {
@@ -79,7 +89,7 @@ static void *client_test_loop(void *arg)
 	}
 	thread->worker = worker;
 
-	while (1) {
+	while (!client_shutdown) {
 		bootstrap_test(thread);
 
 		tpa_worker_run(thread->worker);
@@ -87,7 +97,25 @@ static void *client_test_loop(void *arg)
 		if (poll_and_process(thread) < 0)
 			break;
 	}
+	printf("exiting client: %d\n", thread->id);
 
+	if (thread->log){
+		char outfile[64];
+		snprintf(outfile, sizeof(outfile), "%s/hugepage_thread_%lu.txt", thread->log_dir, (unsigned long)thread->id);
+
+		FILE *fout = fopen(outfile, "w");
+		if (!fout) {
+			perror("fopen");
+			munmap(thread->hugepg, HUGEPAGE_SIZE);
+			return NULL;
+		}
+
+		size_t written = fwrite(thread->hugepg, 1, thread->hugepg_off, fout);
+		printf("Wrote %zu bytes to %s\n", written, outfile);
+
+		fclose(fout);
+		munmap(thread->hugepg, HUGEPAGE_SIZE);
+	}
 	return NULL;
 }
 
@@ -95,6 +123,11 @@ int tperf_client(void)
 {
 	spawn_test_threads(client_test_loop);
 	show_stats();
+
+	client_shutdown = 1;
+
+	for (int i = 0; i < ctx.nr_thread; i++)
+	  pthread_join(ctx.tid[i], NULL);
 
 	return 0;
 }
