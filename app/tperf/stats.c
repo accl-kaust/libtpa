@@ -83,15 +83,20 @@ void update_latency(struct connection *conn)
 	conn->last_ns = now;
 
 	if (conn->thread->log){
-		if (conn->thread->hugepg_off < HUGEPAGE_SIZE - 64) {
-			//fprintf(stderr, "Out of hugepage memory!\n");
+		if (conn->thread->curr_hugepg < NUM_LOG_PAGES){
+			if (conn->thread->hugepg_off < HUGEPAGE_SIZE_COMMIT) {
+				//fprintf(stderr, "Out of hugepage memory!\n");
 
-			char *buffer = (char *)conn->thread->hugepg;
-			char line[22];
-			int len = snprintf(line, sizeof(line), "%ld\n", delta);
+				char *buffer = (char *)conn->thread->hugepg[conn->thread->curr_hugepg];
+				char line[22];
+				int len = snprintf(line, sizeof(line), "%ld\n", delta);
 
-			memcpy(buffer + conn->thread->hugepg_off, line, len);
-			conn->thread->hugepg_off += len;
+				memcpy(buffer + conn->thread->hugepg_off, line, len);
+				conn->thread->hugepg_off += len;
+			} else {
+				conn->thread->hugepg_off = 0;
+				conn->thread->curr_hugepg++;
+			}
 		}
 	}
 }

@@ -65,15 +65,19 @@ int spawn_test_threads(void *(*func)(void *))
 		thread->log_dir = strdup(ctx.log_dir);
 
 		if (thread->log){
-			thread->hugepg = mmap(NULL, HUGEPAGE_SIZE, PROT_READ | PROT_WRITE,
-								  MAP_PRIVATE | MAP_ANONYMOUS | MAP_HUGETLB, -1, 0);
-			thread->hugepg_off = 0;
-			if (thread->hugepg == MAP_FAILED) {
-				printf("failed to allocate hugepage");
-				fprintf(stderr, "Huge page allocation failed. Did you set /proc/sys/vm/nr_hugepages?\n");
-				continue;
+			for (int i=0;i<NUM_LOG_PAGES;i++){
+				thread->hugepg[i] = mmap(NULL, HUGEPAGE_SIZE, PROT_READ | PROT_WRITE,
+										 MAP_PRIVATE | MAP_ANONYMOUS | MAP_HUGETLB, -1, 0);
+
+				if (thread->hugepg == MAP_FAILED) {
+					printf("failed to allocate hugepage");
+					fprintf(stderr, "Huge page allocation failed. Did you set /proc/sys/vm/nr_hugepages?\n");
+					continue;
+				}
 			}
 		}
+		thread->curr_hugepg = 0;
+		thread->hugepg_off = 0;
 		/* 10m is the max sock count tpa supports so far */
 		thread->sid_mappings = zmalloc_assert(10 * 1024 * 1024 * sizeof(struct connection *));
 

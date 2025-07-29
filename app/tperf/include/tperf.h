@@ -21,6 +21,8 @@
 #define MIN(a, b)		((a) < (b) ? (a) : (b))
 
 #define HUGEPAGE_SIZE (2 * 1024 * 1024)
+#define NUM_LOG_PAGES       10
+#define HUGEPAGE_SIZE_COMMIT (HUGEPAGE_SIZE - 64)
 #define TPERF_PORT			4096
 #define BATCH_SIZE			64
 
@@ -56,8 +58,9 @@ struct test_thread {
 	uint32_t nr_event;
 	struct event_queue event_queue;
 
-	void* hugepg;
+	void* hugepg[NUM_LOG_PAGES];
 	uint8_t hugealloc; //true or false
+	uint8_t curr_hugepg;
 	uint64_t hugepg_off;
 	uint8_t log;
 	char* log_dir;

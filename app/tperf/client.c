@@ -102,19 +102,21 @@ static void *client_test_loop(void *arg)
 	if (thread->log){
 		char outfile[64];
 		snprintf(outfile, sizeof(outfile), "%s/hugepage_thread_%lu.txt", thread->log_dir, (unsigned long)thread->id);
-
 		FILE *fout = fopen(outfile, "w");
 		if (!fout) {
 			perror("fopen");
-			munmap(thread->hugepg, HUGEPAGE_SIZE);
+			for (int i=0; i<=thread->curr_hugepg;i++)
+				munmap(thread->hugepg, HUGEPAGE_SIZE);
 			return NULL;
 		}
-
-		size_t written = fwrite(thread->hugepg, 1, thread->hugepg_off, fout);
-		printf("Wrote %zu bytes to %s\n", written, outfile);
+		for (int i = 0; i <= thread->curr_hugepg; i++) {
+			size_t to_write = (i == thread->curr_hugepg) ? thread->hugepg_off : HUGEPAGE_SIZE_COMMIT;
+			fwrite(thread->hugepg[i], 1, to_write, fout);
+		}
 
 		fclose(fout);
-		munmap(thread->hugepg, HUGEPAGE_SIZE);
+		for (int i=0;i<=thread->curr_hugepg; i++)
+			munmap(thread->hugepg[i], HUGEPAGE_SIZE);
 	}
 	return NULL;
 }
