@@ -24,12 +24,14 @@ static void process_conn(struct connection *conn)
 	if (ret < 0 || (events & (TPA_EVENT_ERR | TPA_EVENT_HUP)) || conn->to_close){
 	  if (!conn->is_client && conn->reassemble.reassembly_buf != NULL){
 		    free(conn->reassemble.reassembly_buf);
+			#ifdef TF_ENABLED
 		    if(conn->func == CNN){
 		          TF_DeleteSession(conn->tf_obj.session, conn->tf_obj.status);
 			  TF_DeleteSessionOptions(conn->tf_obj.session_opts);
 			  TF_DeleteGraph(conn->tf_obj.graph);
 			  TF_DeleteStatus(conn->tf_obj.status);
 		    }
+			#endif
 	  }
 	      conn_close(conn);
 	}

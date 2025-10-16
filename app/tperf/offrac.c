@@ -5,7 +5,11 @@
 
 #include <stdio.h>
 #include <string.h>
+
+#ifdef TF_ENABLED
 #include "tensorflow/c/c_api.h"
+#endif
+
 #include "offrac.h"
 #include "tperf.h"
 
@@ -86,6 +90,8 @@ int logit(void* out_buf , int req_size, void* in_buf) {
     return size;
 }
 
+
+#ifdef TF_ENABLED
 int cnn(void* out_buf, int req_size, void* in_buf, cnn_tf *tf_obj){
 
 
@@ -126,3 +132,4 @@ int cnn(void* out_buf, int req_size, void* in_buf, cnn_tf *tf_obj){
 
     return 10 * sizeof(float);
 }
+#endif

@@ -25,6 +25,7 @@ void init_server_conn(struct connection *conn)
 	conn->reassemble.reassembly_buf = (uint8_t *)malloc(conn->req_size);
 	conn->reassemble.off = 0;
 
+	#ifdef TF_ENABLED
 	if (conn->func == CNN){
 	  const char* tags = "serve";
 
@@ -41,7 +42,7 @@ void init_server_conn(struct connection *conn)
 	  conn->tf_obj.output_op.index = 0;
 
 	}
-
+	#endif
 
 	if (conn->reassemble.reassembly_buf == NULL) {
 	      printf("Reassembly buffer Memory allocation failed!\n");

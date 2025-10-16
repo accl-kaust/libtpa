@@ -60,9 +60,9 @@ struct connection {
         uint8_t fpga_srv;
         uint32_t pkt_idx;
 
-  
 
-    
+
+
        struct {
 	     uint8_t *reassembly_buf;
 	     size_t off;
@@ -73,7 +73,9 @@ struct connection {
 		size_t budget;
 	} read;
 
-  cnn_tf tf_obj;
+	#ifdef TF_ENABLED
+	cnn_tf tf_obj;
+	#endif
 	/*
 	 * Here we use the write.budget to control how much we should
 	 * write each time.

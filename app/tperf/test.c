@@ -184,9 +184,12 @@ static int offrac_process(struct test_thread *thread, struct connection *conn, s
 	      logit(mbuf->data, conn->req_size, conn->reassemble.reassembly_buf);
 	} else if (conn->func == NORM){
 	      norm(mbuf->data, conn->req_size, conn->reassemble.reassembly_buf);
-	} else if (conn->func == CNN){
+	}
+	#ifdef TF_ENABLED
+	else if (conn->func == CNN){
 	  cnn(mbuf->data, conn->req_size, conn->reassemble.reassembly_buf, &conn->tf_obj);
 	}
+	#endif
 
 	iov[nr_iov].iov_base = mbuf->data;
 	iov[nr_iov].iov_len  = len;

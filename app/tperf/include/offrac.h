@@ -10,8 +10,9 @@
 #include <float.h>
 #include <stdint.h>
 #include <stdlib.h>
+#ifdef TF_ENABLED
 #include <tensorflow/c/c_api.h>
-
+#endif
 #define MAX_BUF_SIZE 20480
 #define IMAGE_SIZE (64 * 64 * 3)
 
@@ -23,7 +24,7 @@ enum {
       NORM = 5,
 };
 
-
+#ifdef TF_ENABLED
  typedef struct cnn_t{
   TF_Graph* graph;
   TF_Status* status;
@@ -34,9 +35,10 @@ enum {
   TF_Output output_op;
 }cnn_tf;
 
+int cnn(void* out_buf, int req_size, void* in_buf, cnn_tf *tf_obj);
+#endif
 int topk(void* out_buf, int req_size, void* in_buf);
 int norm(void* out_buf, int req_size, void* in_buf);
 int logit(void* out_buf, int req_size, void* in_buf);
-int cnn(void* out_buf, int req_size, void* in_buf, cnn_tf *tf_obj);
 
 #endif

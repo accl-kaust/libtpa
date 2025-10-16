@@ -3,16 +3,27 @@
 # Author: Yuanhan Liu <liuyuanhan.131@bytedance.com>
 
 PKG_CONFIG = PKG_CONFIG_PATH=$(SRC_ROOT)/build pkg-config
+TF=false
 
-
-CFLAGS += -I$(HOME)/.anaconda/envs/cnn_offrac/lib/tensorflow
-CFLAGS += -I$(HOME)/.anaconda/envs/cnn_offrac/lib/tensorflow/xla
-CFLAGS += -I$(SRC_ROOT)/include/lib -Iinclude 
+CFLAGS += -I$(SRC_ROOT)/include/lib -Iinclude
 CFLAGS += $(shell $(PKG_CONFIG) --cflags libtpa-internal)
 
 LDFLAGS := $(shell $(PKG_CONFIG) --libs --static libtpa-internal)
 LDFLAGS += -lm
-LDFLAGS += -L$(HOME)/.anaconda/envs/cnn_offrac/lib/tensorflow/lib -ltensorflow -pthread -ldl -lm
+
+ifeq ($(TF),true)
+
+# Require TF_LIB_PATH if not set
+ifndef TF_LIB_PATH
+$(error TF=true requires TF_LIB_PATH to be set, e.g. make TF=true TF_LIB_PATH=$(HOME)/.anaconda/envs/cnn_offrac/lib/tensorflow)
+endif
+
+CFLAGS += -I$(TF_LIB_PATH)
+CFLAGS += -I$(TF_LIB_PATH)/xla
+LDFLAGS += -L$(TF_LIB_PATH)/lib -ltensorflow -pthread -ldl -lm
+
+CFLAGS += -DTF_ENABLED # compile code for tensorflow
+endif
 
 OBJ_DIR = $(OBJ_ROOT)/app/$(APP)
 BIN_DIR = $(BIN_ROOT)/app
