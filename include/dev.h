@@ -24,7 +24,7 @@
 #define DEV_RXQ_SIZE			NR_RX_DESC
 #define DEV_RXQ_MASK			(DEV_RXQ_SIZE - 1)
 
-#define MAX_PORT_NR			2
+#define MAX_PORT_NR			8
 
 struct dev_ip {
 	int prefixlen;

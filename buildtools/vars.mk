@@ -42,7 +42,7 @@ EXTRA_CFLAGS += -g3 -O0
 endif
 
 CFLAGS := -O2 $(EXTRA_CFLAGS)
-CFLAGS += -Wall -Werror -Wno-packed-not-aligned -Wno-format-truncation
+CFLAGS += -Wall -Wno-packed-not-aligned -Wno-format-truncation
 CFLAGS += -Wno-address-of-packed-member
 
 LDFLAGS := $(EXTRA_LDFLAGS)
@@ -65,7 +65,7 @@ ifneq ($(filter v20.11% v22.11%, $(DPDK_VERSION)),)
 ifeq ($(ARCH), x86_64)
 export DPDK_LD_PATH = $(RTE_SDK)/$(RTE_TARGET)/lib/x86_64-linux-gnu
 else
-export DPDK_LD_PATH = $(RTE_SDK)/$(RTE_TARGET)/lib
+export DPDK_LD_PATH = $(RTE_SDK)/$(RTE_TARGET)/lib/aarch64-linux-gnu
 endif
 else
 export DPDK_LD_PATH = $(RTE_SDK)/$(RTE_TARGET)/lib

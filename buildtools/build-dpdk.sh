@@ -112,7 +112,7 @@ build_with_meson()
 
 	meson build -Dc_args="$EXTRA_CFLAGS" -Dc_link_args="$EXTRA_LDFLAGS" \
 		    -Dprefix=`pwd`/$RTE_TARGET  -Dexamples="" -Dtests=false \
-		    -Ddisable_drivers=$(get_disable_driver_list)
+		    -Ddisable_drivers=$(get_disable_driver_list) 
 
 	[ "$(uname -m)" = "aarch64" ] && {
 		sed -e '/RTE_MAX_LCORE/c\#define RTE_MAX_LCORE 256'         \
@@ -155,6 +155,7 @@ apply_patches()
 		git am $BUILDTOOLS_DIR/patches/0001-net-mlx5-add-the-control-for-FDB-default-rule.patch
 		git am $BUILDTOOLS_DIR/patches/0001-net-mlx5-linux-fix-missed-Rx-packet-stats.patch
 	fi
+	git apply $BUILDTOOLS_DIR/patches/dpdk_bf3.patch
 }
 
 disable_avx512()

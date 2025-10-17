@@ -1,0 +1,46 @@
+diff --git a/config/arm/meson.build b/config/arm/meson.build
+index 6442ec9596..eb5b7d9c18 100644
+--- a/config/arm/meson.build
++++ b/config/arm/meson.build
+@@ -85,6 +85,13 @@ part_number_config_arm = {
+             ['RTE_MAX_NUMA_NODES', 1]
+         ]
+     },
++    '0xd42': {
++        'mcpu' : 'mcpu_cortex-a78ae',
++        'flags': [
++            ['RTE_MAX_LCORE', 16],
++            ['RTE_MAX_NUMA_NODES', 1]
++        ],
++    },
+     '0xd49': {
+         'march': 'armv8.5-a',
+         'march_features': ['sve2'],
+@@ -302,6 +309,19 @@ soc_bluefield = {
+     'numa': false
+ }
+ 
++soc_bluefield3 = {
++  'description': 'NVIDIA BlueField-3',
++  'implementer': '0x41',
++   'flags': [
++          ['RTE_MAX_LCORE', 32],
++          ['RTE_MAX_NUMA_NODES', 1]
++      ],
++
++    'extra_march_features': ['crypto'],
++    'part_number': '0xd42',
++   'numa': false
++}
++
+ soc_centriq2400 = {
+     'description': 'Qualcomm Centriq 2400',
+     'implementer': '0x51',
+@@ -491,6 +511,7 @@ socs = {
+     'thunderx2': soc_thunderx2,
+     'thunderxt88': soc_thunderxt88,
+     'thunderxt83': soc_thunderxt83,
++      'bluefield3': soc_bluefield3,
+ }
+ 
+ dpdk_conf.set('RTE_ARCH_ARM', 1)
