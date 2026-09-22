@@ -16,13 +16,41 @@
 #define MAX_BUF_SIZE 20480
 #define IMAGE_SIZE (64 * 64 * 3)
 
-// Enum for offrac supporting functions
+// Enum for offrac supporting functions. These select what the software
+// server in offrac.c computes; the FPGA has slots, not functions.
 enum {
       TOPK = 1,
       CNN = 2,
       LOGIT = 3,
       NORM = 5,
 };
+
+/*
+ * fRAC request header: one 64-byte AXIS beat prefixed to the request.
+ *
+ *   bytes 0-55   filler. No longer inspected: the slot modules used to detect
+ *                their header line with s_axis_tdata[447:0] == {448{1'b1}},
+ *                and that check is gone. The lowest bit any header parser
+ *                reads is 448 (dispatcher.v:54).
+ *   bytes 56-59  request size, little-endian, INCLUDING this header. (The
+ *                reconfiguration controller is the exception: it excludes the
+ *                header and dispatcher.v adds the 64 back.)
+ *   bytes 60-61  top config. Bits 1:0 alias the FIRST/LAST request flags, so
+ *                top_k reads its 16-bit result mask with those two bits
+ *                overwritten.
+ *   bytes 62-63  slot id, which selects the accelerator cell.
+ *
+ * dispatcher.v identifies a header purely from expecting_header && the FIRST
+ * flag, so bits 1:0 of byte 60 are the only thing marking this line as one.
+ */
+#define FRAC_HDR_SIZE		64
+#define FRAC_HDR_FILL		0xff
+#define FRAC_TOP_CONFIG		0xffff
+#define FRAC_REQ_FLAG_FIRST	0x1
+#define FRAC_REQ_FLAG_LAST	0x2
+
+/* reserved by pkt_logic.v for the reconfiguration controller */
+#define FRAC_RECONF_SLOT_ID	0x00ab
 
 #ifdef TF_ENABLED
  typedef struct cnn_t{

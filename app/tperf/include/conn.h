@@ -56,6 +56,7 @@ struct connection {
 	uint32_t integrity_off;
         uint32_t response_size;
         uint32_t func;
+        uint32_t slot;
         uint32_t req_size;
         uint8_t fpga_srv;
         uint32_t pkt_idx;
