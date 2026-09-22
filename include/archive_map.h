@@ -6,13 +6,51 @@
 #ifndef _ARCHIVE_MAP_H_
 #define _ARCHIVE_MAP_H_
 
+#include "lib/utils.h"
+
 #define NR_MAP_ENTRY		(16 * 1024)
 
 /*
  * all tpa id share one single archive map file
+ *
+ * It lives beside the per-id archive dirs, under the same log root as
+ * tpa_log_root_get(), so that it follows $TPA_LOG_ROOT_PREFIX and needs no
+ * root to create.
  */
-#define ARCHIVE_MAP_FILE	"/var/log/tpa/.archive_map"
-#define CURR_TRACE_MAP_FILE	"/var/log/tpa/.curr_trace_map"
+static inline const char *archive_map_path(const char *name, char *buf, int size)
+{
+	char prefix[PATH_MAX / 2];
+
+	tpa_snprintf(buf, size, "%s/%s",
+		     tpa_state_prefix("TPA_LOG_ROOT_PREFIX", "/var/log/tpa", "log",
+				      prefix, sizeof(prefix)),
+		     name);
+
+	return buf;
+}
+
+static inline const char *archive_map_file(void)
+{
+	static char path[PATH_MAX];
+
+	if (!path[0])
+		archive_map_path(".archive_map", path, sizeof(path));
+
+	return path;
+}
+
+static inline const char *curr_trace_map_file(void)
+{
+	static char path[PATH_MAX];
+
+	if (!path[0])
+		archive_map_path(".curr_trace_map", path, sizeof(path));
+
+	return path;
+}
+
+#define ARCHIVE_MAP_FILE	archive_map_file()
+#define CURR_TRACE_MAP_FILE	curr_trace_map_file()
 
 struct archive_map_entry {
 	size_t off;

@@ -22,7 +22,7 @@ Cflags: -I\${includedir}
 EOF
 
 	cat > build/libtpa.pc <<EOF
-prefix=/usr/share/tpa
+prefix=${INSTALL_ROOT:-/usr/share/tpa}
 libdir=\${prefix}
 includedir=\${prefix}
 
