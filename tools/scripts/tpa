@@ -4,7 +4,24 @@
 # Copyright (c) 2021-2023, ByteDance Ltd. and/or its Affiliates
 # Author: Yuanhan Liu <liuyuanhan.131@bytedance.com>
 
-[ -z "$TPA_PATH" ] && export TPA_PATH=/usr/share/tpa
+#
+# Locate the tpa share dir: where tpad, the parsers and libtpa itself are
+# installed. Nothing here is tied to a system path, so an install under any
+# prefix works without root.
+#
+#   - $TPA_PATH always wins
+#   - installed into the share dir, this script sits next to tpad
+#   - installed into <prefix>/bin, the share dir is <prefix>/share/tpa
+#
+if [ -z "$TPA_PATH" ]; then
+	self_dir=$(cd -- "$(dirname -- "$(readlink -f -- "$0")")" && pwd)
+	if [ -x "$self_dir/tpad" ]; then
+		TPA_PATH=$self_dir
+	else
+		TPA_PATH=$(cd -- "$self_dir/../share/tpa" 2>/dev/null && pwd)
+	fi
+	export TPA_PATH=${TPA_PATH:-/usr/share/tpa}
+fi
 export PATH=$TPA_PATH:$PATH
 
 # TODO: better to dump available cmds from tsh

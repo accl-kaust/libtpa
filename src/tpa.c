@@ -32,7 +32,7 @@
 #include "pktfuzz.h"
 
 /* Using PATH_MAX makes gcc (8.3) complain */
-#define TPA_ROOT_PATH_MAX		80
+#define TPA_ROOT_PATH_MAX		256
 
 static struct timeval startup_time;
 static const char *tpa_id;
@@ -58,13 +58,13 @@ const char *tpa_id_get(void)
 
 static const char *tpa_root_prefix_get(void)
 {
-	const char *prefix;
+	static char prefix[TPA_ROOT_PATH_MAX];
 
-	prefix = getenv("TPA_ROOT_PREFIX");
-	if (prefix == NULL)
-		prefix = "/var/run/tpa";
+	if (prefix[0])
+		return prefix;
 
-	return prefix;
+	return tpa_state_prefix("TPA_ROOT_PREFIX", "/var/run/tpa", "run",
+				prefix, sizeof(prefix));
 }
 
 const char *tpa_root_get(void)
@@ -83,16 +83,15 @@ const char *tpa_root_get(void)
 const char *tpa_log_root_get(void)
 {
 	static char tpa_log_root[TPA_ROOT_PATH_MAX];
-	char *prefix;
+	char prefix[TPA_ROOT_PATH_MAX];
 
 	if (tpa_log_root[0])
 		return tpa_log_root;
 
-	prefix = getenv("TPA_LOG_ROOT_PREFIX");
-	if (prefix == NULL)
-		prefix = "/var/log/tpa";
-
-	tpa_snprintf(tpa_log_root, sizeof(tpa_log_root), "%s/%s", prefix, tpa_id_get());
+	tpa_snprintf(tpa_log_root, sizeof(tpa_log_root), "%s/%s",
+		     tpa_state_prefix("TPA_LOG_ROOT_PREFIX", "/var/log/tpa", "log",
+				      prefix, sizeof(prefix)),
+		     tpa_id_get());
 
 	return tpa_log_root;
 }

@@ -57,17 +57,17 @@ summary: $(SUBDIRS) static
 	$(Q)echo ":: built $(shell buildtools/get-ver.sh): mode=$(BUILD_MODE) dpdk=$(DPDK_VERSION)"
 
 install: $(SUBDIRS) static
-	$(Q)echo "  INSTALL -> $(INSTALL_ROOT)"
-	$(Q)sudo mkdir -p $(INSTALL_ROOT)
-	$(Q)echo $(shell buildtools/get-ver.sh) | sudo tee $(INSTALL_ROOT)/version
-	$(Q)sudo install $(BUILD_ROOT)/libtpa*         $(INSTALL_ROOT)
-	$(Q)sudo install $(BIN_ROOT)/app/*             $(INSTALL_ROOT)
-	$(Q)sudo install $(BIN_ROOT)/tpad/*            $(INSTALL_ROOT)
-	$(Q)sudo install $(BIN_ROOT)/tools/*           $(INSTALL_ROOT)
-	$(Q)sudo install $(SRC_ROOT)/include/api/*     $(INSTALL_ROOT)
-	$(Q)sudo install $(BIN_ROOT)/tools/tpa         /usr/bin
-	$(Q)sudo install $(BIN_ROOT)/app/*             /usr/bin
-	$(Q)sudo install $(BUILD_ROOT)/libtpa.pc       /usr/share/pkgconfig
+	$(Q)echo "  INSTALL -> $(DESTDIR)$(INSTALL_ROOT)"
+	$(Q)$(SUDO) mkdir -p $(DESTDIR)$(INSTALL_ROOT) $(DESTDIR)$(BINDIR) $(DESTDIR)$(PKGCONFIGDIR)
+	$(Q)buildtools/get-ver.sh | $(SUDO) tee $(DESTDIR)$(INSTALL_ROOT)/version >/dev/null
+	$(Q)$(SUDO) install $(BUILD_ROOT)/libtpa*         $(DESTDIR)$(INSTALL_ROOT)
+	$(Q)$(SUDO) install $(BIN_ROOT)/app/*             $(DESTDIR)$(INSTALL_ROOT)
+	$(Q)$(SUDO) install $(BIN_ROOT)/tpad/*            $(DESTDIR)$(INSTALL_ROOT)
+	$(Q)$(SUDO) install $(BIN_ROOT)/tools/*           $(DESTDIR)$(INSTALL_ROOT)
+	$(Q)$(SUDO) install $(SRC_ROOT)/include/api/*     $(DESTDIR)$(INSTALL_ROOT)
+	$(Q)$(SUDO) install $(BIN_ROOT)/tools/tpa         $(DESTDIR)$(BINDIR)
+	$(Q)$(SUDO) install $(BIN_ROOT)/app/*             $(DESTDIR)$(BINDIR)
+	$(Q)$(SUDO) install $(BUILD_ROOT)/libtpa.pc       $(DESTDIR)$(PKGCONFIGDIR)
 
 scan-build: clean
 	scan-build make
