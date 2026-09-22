@@ -45,6 +45,16 @@ With all setup, you can build libtpa simply by::
     make
     make install
 
+.. note::
+    ``make install`` requires no root. It installs under ``~/.local`` by
+    default, so make sure ``~/.local/bin`` is on your ``$PATH``. Pass
+    ``PREFIX`` for anywhere else. For a system-wide install, set ``SUDO``
+    so that only the install steps run as root and the build stays yours::
+
+        make install PREFIX=/usr SUDO=sudo
+
+    ``DESTDIR`` is honoured too, for staged or packaged installs.
+
 Run First Libtpa Application
 ----------------------------
 
