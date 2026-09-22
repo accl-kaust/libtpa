@@ -208,7 +208,7 @@ static int setup_test_data(struct test_thread *thread, struct connection *conn, 
 	struct mbuf *mbuf;
 	int nr_iov = 0;
 	int len;
-	uint8_t fpga_hdr[64];
+	uint8_t fpga_hdr[FRAC_HDR_SIZE];
 
 	struct test_info *info = &conn->info;
 
@@ -223,10 +223,25 @@ static int setup_test_data(struct test_thread *thread, struct connection *conn, 
 
 	if (conn->fpga_srv == 1){
 	      uint32_t request_size = conn->req_size;
-	      uint16_t func = (uint16_t)conn->func;
-	      memset(fpga_hdr, 0xff, 64);
-	      memcpy(&fpga_hdr[62], &func, sizeof(uint16_t)); // Bytes 62–63
-	      memcpy(&fpga_hdr[56], &request_size, sizeof(uint32_t)); // Bytes 57–60
+	      uint16_t slot = (uint16_t)conn->slot;
+	      uint16_t top_config = FRAC_TOP_CONFIG;
+	      uint8_t flags = FRAC_REQ_FLAG_FIRST;
+
+	      /*
+	       * LAST too, unless further segments of this request follow. A
+	       * header beat carrying both ends the request at its segment
+	       * boundary (dispatcher.v), which would truncate a multi-packet
+	       * request whose first segment is the header alone.
+	       */
+	      if (conn->req_size <= (uint32_t)conn->message_size)
+		    flags |= FRAC_REQ_FLAG_LAST;
+
+	      top_config = (top_config & ~0x3) | flags;
+
+	      memset(fpga_hdr, FRAC_HDR_FILL, sizeof(fpga_hdr));
+	      memcpy(&fpga_hdr[56], &request_size, sizeof(uint32_t)); // Bytes 56-59
+	      memcpy(&fpga_hdr[60], &top_config, sizeof(uint16_t));   // Bytes 60-61
+	      memcpy(&fpga_hdr[62], &slot, sizeof(uint16_t));         // Bytes 62-63
 	}
 
 	while (off < budget) {
@@ -242,7 +257,7 @@ static int setup_test_data(struct test_thread *thread, struct connection *conn, 
 
 		if (conn->pkt_idx == 0){
 		      if(conn->fpga_srv == 1){
-			    memcpy(mbuf->data, fpga_hdr, sizeof(struct test_info));
+			    memcpy(mbuf->data, fpga_hdr, sizeof(fpga_hdr));
 		      }else{
 			    memcpy(mbuf->data, info, sizeof(struct test_info));
 		      }

@@ -32,7 +32,8 @@ void usage(void)
 			"  -S start_cpu      specifies the starting cpu to bind\n"
 			"  -Z fpga_server    specifies if server is on CPU or FPGA\n"
 			"  -X request size   specifies request size in case > message size then issues multi pkt req\n"
-			"  -F function       specifies function ID to be exec on the server\n"
+			"  -F function       specifies function ID to be exec on the server (CPU server only)\n"
+			"  -K slot           specifies the FPGA slot id placed in header bytes 62-63 (with -Z 1)\n"
 			"  -R response size  specifies response size expected after execution of function\n"
 			"  -L log latency    logs latency value if set to 0 to the dir mentioned\n"
 			"  -D log dir        stores log files in specified director\n"
@@ -89,11 +90,12 @@ int parse_options(int argc, char **argv)
 	ctx.integrity_enabled = 0;
 	ctx.response_size = ctx.message_size;
 	ctx.func = 0;
+	ctx.slot = 0;
 	ctx.req_size = ctx.message_size;
 	ctx.fpga_srv = 0;
 	ctx.log = 0;
 	ctx.log_dir = "";
-	while ((opt = getopt(argc, argv, "c:C:t:d:l:m:n:p:S:W:R:F:X:Z:L:D:isqh")) != -1) {
+	while ((opt = getopt(argc, argv, "c:C:t:d:l:m:n:p:S:W:R:F:K:X:Z:L:D:isqh")) != -1) {
 		switch (opt) {
 		case 's':
 			ctx.is_client = 0;
@@ -162,6 +164,15 @@ int parse_options(int argc, char **argv)
 
 		case 'F':
 		      PARSE_NUM(ctx.func, optarg, NUM_TYPE_SIZE, "function");
+		      break;
+
+		case 'K':
+		      PARSE_NUM(ctx.slot, optarg, NUM_TYPE_NONE, "slot");
+		      if (ctx.slot == FRAC_RECONF_SLOT_ID) {
+			      fprintf(stderr, "invalid slot: %d is reserved by pkt_logic.v for the "
+					      "reconfiguration controller\n", FRAC_RECONF_SLOT_ID);
+			      exit(1);
+		      }
 		      break;
 
 		case 'X':

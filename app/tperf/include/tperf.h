@@ -83,6 +83,7 @@ struct ctx {
 	int quiet;
 	int response_size;
 	int func;
+	int slot;
 	int req_size;
 	uint8_t fpga_srv;
 	uint8_t log;
