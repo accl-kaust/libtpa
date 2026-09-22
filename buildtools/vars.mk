@@ -7,7 +7,28 @@ export BUILD_ROOT = $(SRC_ROOT)/build
 export OBJ_ROOT   = $(BUILD_ROOT)/objs
 export BIN_ROOT   = $(BUILD_ROOT)/bin
 export RTE_SDK    = $(BUILD_ROOT)/dpdk/$(DPDK_VERSION)
-export INSTALL_ROOT = /usr/share/tpa
+#
+# Install destinations. The default prefix is per-user, so "make install"
+# needs no root: nothing in libtpa requires a system path (tpa_path_resolve()
+# honours $TPA_PATH, and tools/scripts/tpa derives it from its own location).
+# For a system-wide install, pass PREFIX (see SUDO below):
+#
+#     make install PREFIX=/usr SUDO=sudo
+#
+# DESTDIR is honoured for staged/packaged installs.
+#
+export PREFIX       ?= $(HOME)/.local
+export INSTALL_ROOT ?= $(PREFIX)/share/tpa
+export BINDIR       ?= $(PREFIX)/bin
+export PKGCONFIGDIR ?= $(PREFIX)/share/pkgconfig
+export DESTDIR      ?=
+
+# Only the install steps are run through $(SUDO), so a system-wide install
+# still builds as you rather than as root:
+#
+#     make && make install PREFIX=/usr SUDO=sudo
+#
+export SUDO         ?=
 export LIBTPA_A  = $(BUILD_ROOT)/libtpa.a
 export LIBTPA_SO = $(BUILD_ROOT)/libtpa.so
 

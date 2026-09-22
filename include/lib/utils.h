@@ -93,4 +93,47 @@ static inline char *tpa_path_resolve(const char *bin, char *path, int size)
 	return NULL;
 }
 
+/*
+ * Resolve the prefix for one of libtpa's own state dirs (/var/run/tpa,
+ * /var/log/tpa).
+ *
+ * Running libtpa needs no root of its own -- only the NIC and hugepages do --
+ * so when we are not root, and the dirs under /var are therefore not ours to
+ * write, fall back to a per-user dir instead of failing.
+ *
+ * env_name ($TPA_ROOT_PREFIX, $TPA_LOG_ROOT_PREFIX) always wins. Set it to
+ * the same value in every process if the stack and the tools run as
+ * different users.
+ */
+static inline const char *tpa_state_prefix(const char *env_name, const char *sys_dir,
+					   const char *subdir, char *buf, int size)
+{
+	const char *base;
+
+	base = getenv(env_name);
+	if (base && base[0]) {
+		tpa_snprintf(buf, size, "%s", base);
+		return buf;
+	}
+
+	if (geteuid() == 0)
+		goto use_sys_dir;
+
+	base = getenv("XDG_STATE_HOME");
+	if (base && base[0]) {
+		tpa_snprintf(buf, size, "%s/tpa/%s", base, subdir);
+		return buf;
+	}
+
+	base = getenv("HOME");
+	if (base && base[0]) {
+		tpa_snprintf(buf, size, "%s/.local/state/tpa/%s", base, subdir);
+		return buf;
+	}
+
+use_sys_dir:
+	tpa_snprintf(buf, size, "%s", sys_dir);
+	return buf;
+}
+
 #endif
