@@ -5,17 +5,49 @@
  */
 #include <stdio.h>
 
-#include "tperf.h"
+#include "fperf.h"
 
 void init_server_conn(struct connection *conn)
 {
 	int message_size = conn->info.message_size;
+	int response_size = conn->info.response_size;
 
 	conn->test = conn->info.test;
 	conn->integrity_enabled = conn->info.integrity_enabled;
-	conn->integrity_off = conn->info.integrity_off;;
+	conn->integrity_off = conn->info.integrity_off;
 	conn->enable_zwrite = conn->info.enable_zwrite;
 	conn->message_size = message_size;
+	conn->response_size = response_size;
+	conn->func = conn->info.func;
+	conn->req_size = conn->info.req_size;
+	conn->pkt_idx = 0;
+
+	conn->reassemble.reassembly_buf = (uint8_t *)malloc(conn->req_size);
+	conn->reassemble.off = 0;
+
+	#ifdef TF_ENABLED
+	if (conn->func == CNN){
+	  const char* tags = "serve";
+
+	  conn->tf_obj.graph = TF_NewGraph();
+	  conn->tf_obj.status = TF_NewStatus();
+	  conn->tf_obj.session_opts = TF_NewSessionOptions();
+	  conn->tf_obj.run_options = NULL;
+	  conn->tf_obj.session = TF_LoadSessionFromSavedModel(conn->tf_obj.session_opts, conn->tf_obj.run_options, FPERF_TF_MODEL_DIR, &tags, 1, conn->tf_obj.graph, NULL, conn->tf_obj.status);
+
+	  conn->tf_obj.input_op.oper = TF_GraphOperationByName(conn->tf_obj.graph, "serving_default_input_1");
+	  conn->tf_obj.input_op.index = 0;
+
+	  conn->tf_obj.output_op.oper = TF_GraphOperationByName(conn->tf_obj.graph, "StatefulPartitionedCall");
+	  conn->tf_obj.output_op.index = 0;
+
+	}
+	#endif
+
+	if (conn->reassemble.reassembly_buf == NULL) {
+	      printf("Reassembly buffer Memory allocation failed!\n");
+	      exit(1);
+	}
 
 	switch (conn->test) {
 	case TEST_READ:
@@ -91,12 +123,12 @@ static void *server_thread_loop(void *arg)
 
 		poll_and_process(thread);
 	}
-
 	return NULL;
 }
 
-int tperf_server(void)
+int fperf_server(void)
 {
+        setenv("TF_CPP_MIN_LOG_LEVEL", "3", 1);
 	spawn_test_threads(server_thread_loop);
 
 	while (1)

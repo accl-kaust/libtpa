@@ -3,8 +3,8 @@
  * Copyright (c) 2021-2023, ByteDance Ltd. and/or its Affiliates
  * Author: Yuanhan Liu <liuyuanhan.131@bytedance.com>
  */
-#ifndef _TPERF_H_
-#define _TPERF_H_
+#ifndef _FPERF_H_
+#define _FPERF_H_
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -20,7 +20,10 @@
 
 #define MIN(a, b)		((a) < (b) ? (a) : (b))
 
-#define TPERF_PORT			4096
+#define HUGEPAGE_SIZE (2 * 1024 * 1024)
+#define NUM_LOG_PAGES       10
+#define HUGEPAGE_SIZE_COMMIT (HUGEPAGE_SIZE - 64)
+#define FPERF_PORT			4096
 #define BATCH_SIZE			64
 
 enum {
@@ -54,6 +57,13 @@ struct test_thread {
 
 	uint32_t nr_event;
 	struct event_queue event_queue;
+
+	void* hugepg[NUM_LOG_PAGES];
+	uint8_t hugealloc; //true or false
+	uint8_t curr_hugepg;
+	uint64_t hugepg_off;
+	uint8_t log;
+	char* log_dir;
 } __attribute__((__aligned__(64)));
 
 struct ctx {
@@ -71,9 +81,18 @@ struct ctx {
 	int enable_zwrite;
 	int port;
 	int quiet;
+	int response_size;
+	int func;
+	int slot;
+	int req_size;
+	uint8_t fpga_srv;
+	uint8_t log;
+	char* log_dir;
 
 	struct test_thread *threads;
 	struct thread_stats *stats;
+
+	pthread_t *tid;
 };
 
 extern struct ctx ctx;
@@ -111,8 +130,8 @@ static inline struct connection *event_queue_pop(struct test_thread *thread)
 	(conn)->thread->stats->rw_stats.field += val;	\
 } while (0)
 
-int tperf_client(void);
-int tperf_server(void);
+int fperf_client(void);
+int fperf_server(void);
 void init_server_conn(struct connection *conn);
 
 /* stats.c */
