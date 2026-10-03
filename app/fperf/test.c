@@ -318,7 +318,7 @@ int conn_on_write(struct connection *conn)
 		}
 
 		if (conn->is_client) {
-		      nr_iov += setup_test_data(thread, conn, iov);
+		      nr_iov = setup_test_data(thread, conn, iov);
 		} else {
 		      nr_iov = offrac_process(thread, conn, iov);
 		}
