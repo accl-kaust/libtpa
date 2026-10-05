@@ -12,33 +12,6 @@
 
 #define TRACE_HEADER		"app,sleep_time,request_size,response_size"
 
-/*
- * The app column names a function, the FPGA runs it by slot. pkt_logic.v
- * routes a slot id past its last cell to cell 0, so an app missing here
- * is rejected rather than sent there.
- */
-static const struct {
-	uint16_t func;
-	uint16_t slot;
-} func_slots[] = {
-	{ TOPK,  0 },
-	{ LOGIT, 1 },
-	{ CNN,   2 },
-	{ NORM,  3 },
-};
-
-static int func_to_slot(unsigned long func)
-{
-	size_t i;
-
-	for (i = 0; i < sizeof(func_slots) / sizeof(func_slots[0]); i++) {
-		if (func_slots[i].func == func)
-			return func_slots[i].slot;
-	}
-
-	return -1;
-}
-
 static void trace_error(const char *path, int lineno, const char *what)
 {
 	fprintf(stderr, "error: %s:%d: %s\n", path, lineno, what);
@@ -97,9 +70,16 @@ static const char *parse_row(char *p, struct trace_entry *e)
 	if (!parse_ulong(p, &resp, '\0') || resp == 0 || resp > UINT32_MAX)
 		return "bad response_size";
 
-	slot = func_to_slot(func);
+	/* the app column is a function; the slot map says where it runs */
+	slot = func > UINT16_MAX ? -1 : func_slot(func);
 	if (slot < 0) {
-		snprintf(err, sizeof(err), "app %lu has no slot in func_slots[]", func);
+		snprintf(err, sizeof(err), "no slot holds app %lu, see -M", func);
+		return err;
+	}
+
+	if (func == NORM && req + FRAC_HDR_SIZE > FRAC_NORM_MAX_REQ_SIZE) {
+		snprintf(err, sizeof(err), "norm never finishes a request over %d bytes",
+			 FRAC_NORM_MAX_REQ_SIZE);
 		return err;
 	}
 

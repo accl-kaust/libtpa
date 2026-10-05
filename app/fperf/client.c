@@ -144,8 +144,12 @@ static void *client_test_loop(void *arg)
 
 int fperf_client(void)
 {
+	if (ctx.slots_file)
+		slots_load(ctx.slots_file);
 	if (ctx.trace_file)
 		trace_load(ctx.trace_file);
+	if (ctx.record)
+		record_setup();
 
 	spawn_test_threads(client_test_loop);
 	show_stats();

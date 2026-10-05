@@ -43,6 +43,14 @@ void usage(void)
 			"                    seconds after the previous response. Needs -t rr -Z 1 -n 1 -C 1,\n"
 			"                    replaces -F/-K/-X/-R, and runs to the end of the trace unless -d\n"
 			"                    is given\n"
+			"  -M slot_map       names the unit in each FPGA slot, one \"<slot> <unit>\" line each\n"
+			"                    (top_k, log, norm, cnn), for -E and -r (default: 0 top_k, 1 log,\n"
+			"                    2 cnn, 3 norm)\n"
+			"  -r                records every request and response to <-D dir>/record_thread_N.bin\n"
+			"                    for app/fperf/scripts/checkrecord.go, the requests filled with\n"
+			"                    random data for the unit in their slot. Needs -t rr -Z 1 -D, and\n"
+			"                    takes the response size from the unit instead of -R\n"
+			"  -g seed           seeds the random data of -r (default: 1)\n"
 			"\n"
 			"Server options:\n"
 			"  -s                run in server mode\n"
@@ -102,7 +110,8 @@ int parse_options(int argc, char **argv)
 	ctx.fpga_srv = 0;
 	ctx.log = 0;
 	ctx.log_dir = "";
-	while ((opt = getopt(argc, argv, "c:C:t:d:l:m:n:p:S:W:R:F:K:X:Z:L:D:E:isqh")) != -1) {
+	ctx.seed = 1;
+	while ((opt = getopt(argc, argv, "c:C:t:d:l:m:n:p:S:W:R:F:K:X:Z:L:D:E:M:g:risqh")) != -1) {
 		switch (opt) {
 		case 's':
 			ctx.is_client = 0;
@@ -207,6 +216,18 @@ int parse_options(int argc, char **argv)
 			ctx.trace_file = strdup(optarg);
 			break;
 
+		case 'M':
+			ctx.slots_file = strdup(optarg);
+			break;
+
+		case 'r':
+			ctx.record = 1;
+			break;
+
+		case 'g':
+			PARSE_NUM(ctx.seed, optarg, NUM_TYPE_NONE, "seed");
+			break;
+
 		case 'q':
 			ctx.quiet = 1;
 			break;
@@ -261,6 +282,18 @@ int parse_options(int argc, char **argv)
 
 		if (!has_opt_d)
 			ctx.duration = INT_MAX;
+	}
+
+	if (ctx.record) {
+		if (!ctx.is_client || ctx.test != TEST_RR || ctx.fpga_srv != 1) {
+			fprintf(stderr, "error: -r needs -t rr -Z 1\n\n");
+			usage();
+		}
+
+		if (ctx.log_dir[0] == '\0') {
+			fprintf(stderr, "error: -r needs -D, the directory to record into\n\n");
+			usage();
+		}
 	}
 
 	return 0;
