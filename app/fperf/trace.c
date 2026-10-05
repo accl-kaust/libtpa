@@ -91,6 +91,8 @@ static const char *parse_row(char *p, struct trace_entry *e)
 	p = parse_ulong(p, &req, ',');
 	if (!p || req == 0 || req > UINT32_MAX - FRAC_HDR_SIZE)
 		return "bad request_size";
+	if (req % FRAC_LINE_SIZE)
+		return "request_size is not whole 64-byte lines";
 
 	if (!parse_ulong(p, &resp, '\0') || resp == 0 || resp > UINT32_MAX)
 		return "bad response_size";

@@ -44,6 +44,7 @@ enum {
  * flag, so bits 1:0 of byte 60 are the only thing marking this line as one.
  */
 #define FRAC_HDR_SIZE		64
+#define FRAC_LINE_SIZE		64	/* one AXIS beat */
 #define FRAC_HDR_FILL		0xff
 #define FRAC_TOP_CONFIG		0xffff
 #define FRAC_REQ_FLAG_FIRST	0x1

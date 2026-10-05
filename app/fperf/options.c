@@ -95,10 +95,10 @@ int parse_options(int argc, char **argv)
 	ctx.start_cpu     = -4096;
 	ctx.nr_conn_per_thread = 1;
 	ctx.integrity_enabled = 0;
-	ctx.response_size = ctx.message_size;
+	ctx.response_size = 0; /* -m, unless -R is given */
 	ctx.func = 0;
 	ctx.slot = 0;
-	ctx.req_size = ctx.message_size;
+	ctx.req_size = 0; /* -m, unless -X is given */
 	ctx.fpga_srv = 0;
 	ctx.log = 0;
 	ctx.log_dir = "";
@@ -235,16 +235,27 @@ int parse_options(int argc, char **argv)
 		usage();
 	}
 
+	if (!ctx.req_size)
+		ctx.req_size = ctx.message_size;
+	if (!ctx.response_size)
+		ctx.response_size = ctx.message_size;
+
+	/*
+	 * pkt_receiver.v refuses a TCP segment that is not whole 64-byte lines.
+	 * libtpa cuts a write at the MSS the FPGA advertises, a multiple of 64,
+	 * so each message and the request's last, shorter one must be too.
+	 */
+	if (ctx.fpga_srv == 1 &&
+	    (ctx.message_size % FRAC_LINE_SIZE || ctx.req_size % FRAC_LINE_SIZE)) {
+		fprintf(stderr, "error: with -Z 1, the message and request sizes must be multiples of %d\n\n",
+			FRAC_LINE_SIZE);
+		usage();
+	}
+
 	if (ctx.trace_file) {
 		if (!ctx.is_client || ctx.test != TEST_RR || ctx.fpga_srv != 1 ||
 		    ctx.nr_thread != 1 || ctx.nr_conn_per_thread != 1) {
 			fprintf(stderr, "error: -E needs -t rr -Z 1 -n 1 -C 1\n\n");
-			usage();
-		}
-
-		if (ctx.message_size < FRAC_HDR_SIZE) {
-			fprintf(stderr, "error: -E needs a message size of at least %d, the FRAC header\n\n",
-				FRAC_HDR_SIZE);
 			usage();
 		}
 
