@@ -4,6 +4,7 @@
  * Author: Yuanhan Liu <liuyuanhan.131@bytedance.com>
  */
 #include <stdio.h>
+#include <limits.h>
 
 #include <utils.h>
 
@@ -37,6 +38,11 @@ void usage(void)
 			"  -R response size  specifies response size expected after execution of function\n"
 			"  -L log latency    logs latency value if set to 0 to the dir mentioned\n"
 			"  -D log dir        stores log files in specified director\n"
+			"  -E trace_file     replays a CSV trace (app,sleep_time,request_size,response_size)\n"
+			"                    on the FPGA: each row goes to the slot of its app, sleep_time\n"
+			"                    seconds after the previous response. Needs -t rr -Z 1 -n 1 -C 1,\n"
+			"                    replaces -F/-K/-X/-R, and runs to the end of the trace unless -d\n"
+			"                    is given\n"
 			"\n"
 			"Server options:\n"
 			"  -s                run in server mode\n"
@@ -73,6 +79,7 @@ int parse_options(int argc, char **argv)
 {
 	int opt;
 	int has_opt_c = 0;
+	int has_opt_d = 0;
 
 	memset(&ctx, 0, sizeof(ctx));
 
@@ -95,7 +102,7 @@ int parse_options(int argc, char **argv)
 	ctx.fpga_srv = 0;
 	ctx.log = 0;
 	ctx.log_dir = "";
-	while ((opt = getopt(argc, argv, "c:C:t:d:l:m:n:p:S:W:R:F:K:X:Z:L:D:isqh")) != -1) {
+	while ((opt = getopt(argc, argv, "c:C:t:d:l:m:n:p:S:W:R:F:K:X:Z:L:D:E:isqh")) != -1) {
 		switch (opt) {
 		case 's':
 			ctx.is_client = 0;
@@ -124,6 +131,7 @@ int parse_options(int argc, char **argv)
 
 		case 'd':
 			PARSE_NUM(ctx.duration, optarg, NUM_TYPE_TIME, "duration");
+			has_opt_d = 1;
 			break;
 
 		case 'l':
@@ -195,6 +203,10 @@ int parse_options(int argc, char **argv)
 			ctx.log_dir = strdup(optarg);
 			break;
 
+		case 'E':
+			ctx.trace_file = strdup(optarg);
+			break;
+
 		case 'q':
 			ctx.quiet = 1;
 			break;
@@ -216,6 +228,28 @@ int parse_options(int argc, char **argv)
 	if (ctx.is_client && ctx.test < 0) {
 		fprintf(stderr, "error: missing mandatory option: -t test\n\n");
 		usage();
+	}
+
+	if (ctx.message_size <= 0 || ctx.message_size > MAX_MESSAGE_SIZE) {
+		fprintf(stderr, "error: message size must be 1..%d bytes\n\n", MAX_MESSAGE_SIZE);
+		usage();
+	}
+
+	if (ctx.trace_file) {
+		if (!ctx.is_client || ctx.test != TEST_RR || ctx.fpga_srv != 1 ||
+		    ctx.nr_thread != 1 || ctx.nr_conn_per_thread != 1) {
+			fprintf(stderr, "error: -E needs -t rr -Z 1 -n 1 -C 1\n\n");
+			usage();
+		}
+
+		if (ctx.message_size < FRAC_HDR_SIZE) {
+			fprintf(stderr, "error: -E needs a message size of at least %d, the FRAC header\n\n",
+				FRAC_HDR_SIZE);
+			usage();
+		}
+
+		if (!has_opt_d)
+			ctx.duration = INT_MAX;
 	}
 
 	return 0;

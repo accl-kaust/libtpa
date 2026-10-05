@@ -22,9 +22,10 @@
 
 #define HUGEPAGE_SIZE (2 * 1024 * 1024)
 #define NUM_LOG_PAGES       10
-#define HUGEPAGE_SIZE_COMMIT (HUGEPAGE_SIZE - 64)
 #define FPERF_PORT			4096
 #define BATCH_SIZE			64
+/* a message goes out in one zwritev, one iov per mbuf */
+#define MAX_MESSAGE_SIZE		(BATCH_SIZE * MBUF_SIZE)
 
 enum {
 	TEST_READ,
@@ -59,12 +60,23 @@ struct test_thread {
 	struct event_queue event_queue;
 
 	void* hugepg[NUM_LOG_PAGES];
+	uint32_t hugepg_len[NUM_LOG_PAGES]; /* bytes used in each page before curr_hugepg */
 	uint8_t hugealloc; //true or false
 	uint8_t curr_hugepg;
 	uint64_t hugepg_off;
+	uint64_t log_dropped; /* lines that came after the last page filled */
 	uint8_t log;
 	char* log_dir;
 } __attribute__((__aligned__(64)));
+
+/* one row of a -E trace */
+struct trace_entry {
+	uint64_t gap_ns;	/* wait after the previous response before sending */
+	uint32_t req_size;	/* bytes on the wire, FRAC header included */
+	uint32_t response_size;
+	uint16_t func;		/* the trace's app column */
+	uint16_t slot;
+};
 
 struct ctx {
 	char *local;
@@ -88,6 +100,11 @@ struct ctx {
 	uint8_t fpga_srv;
 	uint8_t log;
 	char* log_dir;
+
+	char *trace_file;
+	struct trace_entry *trace;
+	uint32_t nr_trace;
+	volatile int trace_done;
 
 	struct test_thread *threads;
 	struct thread_stats *stats;
@@ -136,9 +153,17 @@ void init_server_conn(struct connection *conn);
 
 /* stats.c */
 uint64_t get_time_in_ns(void);
-void update_latency(struct connection *conn);
+uint64_t update_latency(struct connection *conn);
+void log_append(struct test_thread *thread, const char *line, int len);
 int str_to_test(const char *str);
 void show_stats(void);
+
+/* trace.c */
+void trace_load(const char *path);
+void trace_conn_init(struct connection *conn);
+void trace_on_send(struct connection *conn);
+void trace_on_response(struct connection *conn, uint64_t latency);
+void trace_release(struct test_thread *thread);
 
 /* event.c */
 int poll_and_process(struct test_thread *thread);

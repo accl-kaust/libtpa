@@ -82,10 +82,15 @@ static void on_rr_read_done(struct connection *conn)
 
 	/* we got the respose: the request is done */
 	if (conn->is_client) {
+		uint64_t latency;
+
 	        assert((conn->read.off) == (conn->read.budget));
-	        update_latency(conn);
+	        latency = update_latency(conn);
 		if (conn->test == TEST_CRR){
 			conn->to_close = 1;
+		}
+		else if (ctx.trace_file){
+			trace_on_response(conn, latency);
 		}
 		else if(conn->test == TEST_RR){
 		  conn->write.budget = conn->message_size;
@@ -203,7 +208,8 @@ static int offrac_process(struct test_thread *thread, struct connection *conn, s
 
 static int setup_test_data(struct test_thread *thread, struct connection *conn, struct tpa_iovec *iov)
 {
-        int budget = conn->write.budget;
+	/* a request goes out in message_size pieces; the last may be shorter */
+	int budget = MIN(conn->write.budget, conn->req_size - conn->write.off);
 	size_t off = 0;
 	struct mbuf *mbuf;
 	int nr_iov = 0;
@@ -255,7 +261,8 @@ static int setup_test_data(struct test_thread *thread, struct connection *conn, 
 
 		memset(mbuf->data, 0x9f, len);
 
-		if (conn->pkt_idx == 0){
+		/* the header leads the request: first mbuf of the first piece only */
+		if (conn->pkt_idx == 0 && off == 0){
 		      if(conn->fpga_srv == 1){
 			    memcpy(mbuf->data, fpga_hdr, sizeof(fpga_hdr));
 		      }else{
@@ -310,7 +317,8 @@ int conn_on_write(struct connection *conn)
 	int i;
 
 	while (conn->write.budget) {
-		struct tpa_iovec iov[1];
+		/* setup_test_data() fills one per mbuf; options.c caps -m to fit */
+		struct tpa_iovec iov[BATCH_SIZE];
 
 		if (mbuf_pool_free_count(thread->mbuf_pool) * MBUF_SIZE < conn->write.budget) {
 			event_queue_add(conn, TPA_EVENT_OUT);
@@ -324,7 +332,6 @@ int conn_on_write(struct connection *conn)
 		}
 
 		bytes_write = tpa_zwritev(conn->sid, iov, nr_iov);
-		conn->pkt_idx += 1;
 
 		if (bytes_write < 0) {
 			int err = errno;
@@ -337,6 +344,14 @@ int conn_on_write(struct connection *conn)
 
 			return -1;
 		}
+
+		/*
+		 * Count a piece only once it is out, so that a retry after
+		 * EAGAIN still carries the header.
+		 */
+		if (conn->pkt_idx == 0 && conn->is_client && ctx.trace_file)
+			trace_on_send(conn);
+		conn->pkt_idx += 1;
 
 		on_write_done(conn, bytes_write);
 	}

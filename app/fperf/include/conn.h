@@ -61,6 +61,10 @@ struct connection {
         uint8_t fpga_srv;
         uint32_t pkt_idx;
 
+	/* -E: the row being sent, or waiting for its sleep_time to pass */
+	uint32_t trace_idx;
+	int trace_wait;
+	uint64_t next_send_ns;
 
 
 
