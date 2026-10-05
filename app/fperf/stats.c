@@ -63,10 +63,11 @@ uint64_t get_time_in_ns(void)
 
 	clock_gettime(CLOCK_REALTIME, &ts);
 
-	return ts.tv_sec * 1e9 + ts.tv_nsec;
+	/* integer math: a double holds epoch ns only to 256 ns */
+	return (uint64_t)ts.tv_sec * 1000000000ULL + ts.tv_nsec;
 }
 
-void update_latency(struct connection *conn)
+uint64_t update_latency(struct connection *conn)
 {
 	struct latency *latency = &conn->thread->stats->latency;
 	uint64_t now = get_time_in_ns();
@@ -83,22 +84,34 @@ void update_latency(struct connection *conn)
 	conn->last_ns = now;
 
 	if (conn->thread->log){
-		if (conn->thread->curr_hugepg < NUM_LOG_PAGES){
-			if (conn->thread->hugepg_off < HUGEPAGE_SIZE_COMMIT) {
-				//fprintf(stderr, "Out of hugepage memory!\n");
+		char line[24];
+		int len = snprintf(line, sizeof(line), "%lu\n", delta);
 
-				char *buffer = (char *)conn->thread->hugepg[conn->thread->curr_hugepg];
-				char line[22];
-				int len = snprintf(line, sizeof(line), "%ld\n", delta);
-
-				memcpy(buffer + conn->thread->hugepg_off, line, len);
-				conn->thread->hugepg_off += len;
-			} else {
-				conn->thread->hugepg_off = 0;
-				conn->thread->curr_hugepg++;
-			}
-		}
+		log_append(conn->thread, line, len);
 	}
+
+	return delta;
+}
+
+/*
+ * Lines never straddle hugepages: one that doesn't fit starts the next
+ * page, and the page records how much it holds for the dump at exit.
+ */
+void log_append(struct test_thread *thread, const char *line, int len)
+{
+	if (thread->hugepg_off + len > HUGEPAGE_SIZE) {
+		if (thread->curr_hugepg == NUM_LOG_PAGES - 1) {
+			thread->log_dropped += 1;
+			return;
+		}
+
+		thread->hugepg_len[thread->curr_hugepg] = thread->hugepg_off;
+		thread->curr_hugepg += 1;
+		thread->hugepg_off = 0;
+	}
+
+	memcpy((char *)thread->hugepg[thread->curr_hugepg] + thread->hugepg_off, line, len);
+	thread->hugepg_off += len;
 }
 
 static void show_rw_stats(int loop, struct thread_stats *last_stats)
@@ -195,7 +208,7 @@ void show_stats(void)
 			do_show_stats(loop++, last_stats);
 			memcpy(&last_stats, ctx.stats, sizeof(last_stats));
 		}
-	} while (--ctx.duration);
+	} while (--ctx.duration && !ctx.trace_done);
 
 	printf("\n---\n");
 	for (i = 0; i < ctx.nr_thread; i++) {

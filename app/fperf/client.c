@@ -11,6 +11,7 @@
 #include <sched.h>
 #include <sys/mman.h>
 #include <errno.h>
+#include <limits.h>
 
 #include "fperf.h"
 
@@ -62,12 +63,19 @@ static struct connection *create_client_conn(struct test_thread *thread, int sid
 		break;
 	}
 
+	if (ctx.trace_file)
+		trace_conn_init(conn);
+
 	return conn;
 }
 
 static void bootstrap_test(struct test_thread *thread)
 {
 	int sid;
+
+	/* a trace is replayed once, on one connection */
+	if (ctx.trace_file && thread->stats->nr_conn_total)
+		return;
 
 	while (thread->nr_conn < ctx.nr_conn_per_thread) {
 		sid = tpa_connect_to(ctx.server, ctx.port, NULL);
@@ -95,27 +103,39 @@ static void *client_test_loop(void *arg)
 
 		tpa_worker_run(thread->worker);
 
+		if (ctx.trace_file && !ctx.trace_done) {
+			if (thread->nr_conn == 0 && thread->stats->nr_conn_total) {
+				fprintf(stderr, "trace: connection closed after %lu of %u rows\n",
+					thread->stats->latency.count, ctx.nr_trace);
+				ctx.trace_done = 1;
+			}
+			trace_release(thread);
+		}
+
 		if (poll_and_process(thread) < 0)
 			break;
 	}
 	printf("exiting client: %d\n", thread->id);
 
 	if (thread->log){
-		char outfile[64];
+		char outfile[PATH_MAX];
 		snprintf(outfile, sizeof(outfile), "%s/hugepage_thread_%lu.txt", thread->log_dir, (unsigned long)thread->id);
 		FILE *fout = fopen(outfile, "w");
 		if (!fout) {
 			perror("fopen");
 			for (int i=0; i<=thread->curr_hugepg;i++)
-				munmap(thread->hugepg, HUGEPAGE_SIZE);
+				munmap(thread->hugepg[i], HUGEPAGE_SIZE);
 			return NULL;
 		}
 		for (int i = 0; i <= thread->curr_hugepg; i++) {
-			size_t to_write = (i == thread->curr_hugepg) ? thread->hugepg_off : HUGEPAGE_SIZE_COMMIT;
+			size_t to_write = (i == thread->curr_hugepg) ? thread->hugepg_off : thread->hugepg_len[i];
 			fwrite(thread->hugepg[i], 1, to_write, fout);
 		}
 
 		fclose(fout);
+		if (thread->log_dropped)
+			fprintf(stderr, "warn: log of thread %d is full, dropped its last %lu lines\n",
+				thread->id, thread->log_dropped);
 		for (int i=0;i<=thread->curr_hugepg; i++)
 			munmap(thread->hugepg[i], HUGEPAGE_SIZE);
 	}
@@ -124,6 +144,9 @@ static void *client_test_loop(void *arg)
 
 int fperf_client(void)
 {
+	if (ctx.trace_file)
+		trace_load(ctx.trace_file);
+
 	spawn_test_threads(client_test_loop);
 	show_stats();
 

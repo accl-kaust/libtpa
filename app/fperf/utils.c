@@ -69,10 +69,9 @@ int spawn_test_threads(void *(*func)(void *))
 				thread->hugepg[i] = mmap(NULL, HUGEPAGE_SIZE, PROT_READ | PROT_WRITE,
 										 MAP_PRIVATE | MAP_ANONYMOUS | MAP_HUGETLB, -1, 0);
 
-				if (thread->hugepg == MAP_FAILED) {
-					printf("failed to allocate hugepage");
+				if (thread->hugepg[i] == MAP_FAILED) {
 					fprintf(stderr, "Huge page allocation failed. Did you set /proc/sys/vm/nr_hugepages?\n");
-					continue;
+					exit(1);
 				}
 			}
 		}
