@@ -66,6 +66,13 @@ struct connection {
 	int trace_wait;
 	uint64_t next_send_ns;
 
+	/* -r: the request going out and the response coming in */
+	uint8_t *req_buf;
+	uint32_t req_cap;
+	uint8_t *resp_buf;
+	uint32_t resp_cap;
+	uint64_t rec_seq;
+
 
 
        struct {

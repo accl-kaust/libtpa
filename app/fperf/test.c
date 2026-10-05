@@ -62,6 +62,9 @@ static void read_test_data(struct connection *conn, struct tpa_iovec *iov,
 		      memcpy((conn->reassemble.reassembly_buf + conn->reassemble.off), base, len);
 		      conn->reassemble.off += len;
 		}
+		/* the client eats nothing, so this iov starts sum bytes into the read */
+		if (conn->is_client && ctx.record)
+			record_response_data(conn, conn->read.off + sum, base, len);
 		if (0) // disable integrity check for now
 		      integrity_verify(base, len, conn->integrity_off + conn->stats.bytes_read);
 
@@ -84,6 +87,9 @@ static void on_rr_read_done(struct connection *conn)
 	if (conn->is_client) {
 		uint64_t latency;
 
+		/* before the check, so an answer of the wrong length is on record */
+		if (ctx.record)
+			record_response(conn);
 	        assert((conn->read.off) == (conn->read.budget));
 	        latency = update_latency(conn);
 		if (conn->test == TEST_CRR){
@@ -250,6 +256,10 @@ static int setup_test_data(struct test_thread *thread, struct connection *conn, 
 	      memcpy(&fpga_hdr[62], &slot, sizeof(uint16_t));         // Bytes 62-63
 	}
 
+	/* -r makes the whole request, header and data, before its first piece */
+	if (ctx.record && conn->pkt_idx == 0)
+		record_fill(conn, fpga_hdr);
+
 	while (off < budget) {
 		mbuf = mbuf_alloc(thread->mbuf_pool);
 		assert(mbuf != NULL);
@@ -257,17 +267,21 @@ static int setup_test_data(struct test_thread *thread, struct connection *conn, 
 		mbuf->private = conn_get(conn);
 
 		len = MIN(budget - off, MBUF_SIZE);
-		// set buff to some random value
 
-		memset(mbuf->data, 0x9f, len);
+		if (ctx.record) {
+			memcpy(mbuf->data, conn->req_buf + conn->write.off + off, len);
+		} else {
+			// set buff to some random value
+			memset(mbuf->data, 0x9f, len);
 
-		/* the header leads the request: first mbuf of the first piece only */
-		if (conn->pkt_idx == 0 && off == 0){
-		      if(conn->fpga_srv == 1){
-			    memcpy(mbuf->data, fpga_hdr, sizeof(fpga_hdr));
-		      }else{
-			    memcpy(mbuf->data, info, sizeof(struct test_info));
-		      }
+			/* the header leads the request: first mbuf of the first piece only */
+			if (conn->pkt_idx == 0 && off == 0){
+			      if(conn->fpga_srv == 1){
+				    memcpy(mbuf->data, fpga_hdr, sizeof(fpga_hdr));
+			      }else{
+				    memcpy(mbuf->data, info, sizeof(struct test_info));
+			      }
+			}
 		}
 
 		iov[nr_iov].iov_base = mbuf->data;
@@ -305,6 +319,8 @@ static void on_write_done(struct connection *conn, int bytes_write)
 		conn->write.budget = 0;
 
 	conn->last_ns = get_time_in_ns();
+	if (conn->is_client && ctx.record)
+		record_request(conn);
 	conn->pkt_idx = 0;
 	conn->write.off = 0;
 }

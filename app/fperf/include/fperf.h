@@ -67,6 +67,9 @@ struct test_thread {
 	uint64_t log_dropped; /* lines that came after the last page filled */
 	uint8_t log;
 	char* log_dir;
+
+	int record_fd;
+	uint64_t rng; /* -r: state of the request data generator */
 } __attribute__((__aligned__(64)));
 
 /* one row of a -E trace */
@@ -105,6 +108,10 @@ struct ctx {
 	struct trace_entry *trace;
 	uint32_t nr_trace;
 	volatile int trace_done;
+
+	char *slots_file;
+	int record;
+	uint64_t seed;
 
 	struct test_thread *threads;
 	struct thread_stats *stats;
@@ -164,6 +171,20 @@ void trace_conn_init(struct connection *conn);
 void trace_on_send(struct connection *conn);
 void trace_on_response(struct connection *conn, uint64_t latency);
 void trace_release(struct test_thread *thread);
+
+/* slots.c */
+void slots_load(const char *path);
+int slot_func(int slot);
+int func_slot(int func);
+uint32_t func_response_size(int func, uint32_t req_size);
+
+/* record.c */
+void record_setup(void);
+void record_open(struct test_thread *thread);
+void record_fill(struct connection *conn, const uint8_t *hdr);
+void record_response_data(struct connection *conn, size_t off, const void *data, int len);
+void record_request(struct connection *conn);
+void record_response(struct connection *conn);
 
 /* event.c */
 int poll_and_process(struct test_thread *thread);

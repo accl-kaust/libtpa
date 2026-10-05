@@ -53,6 +53,12 @@ enum {
 /* reserved by pkt_logic.v for the reconfiguration controller */
 #define FRAC_RECONF_SLOT_ID	0x00ab
 
+/* cells C00-C03: pkt_logic.v routes any other slot id to cell 0 */
+#define FRAC_NR_SLOTS		4
+
+/* norm_core.v holds 256 data lines and never finishes a longer request */
+#define FRAC_NORM_MAX_REQ_SIZE	(FRAC_HDR_SIZE + 256 * FRAC_LINE_SIZE)
+
 #ifdef TF_ENABLED
  typedef struct cnn_t{
   TF_Graph* graph;

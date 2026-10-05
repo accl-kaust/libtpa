@@ -41,5 +41,10 @@ void conn_close(struct connection *conn)
 	tpa_event_ctrl(conn->sid, TPA_EVENT_CTRL_DEL, NULL);
 	tpa_close(conn->sid);
 
+	free(conn->req_buf);
+	free(conn->resp_buf);
+	conn->req_buf = NULL;
+	conn->resp_buf = NULL;
+
 	conn_put(conn);
 }

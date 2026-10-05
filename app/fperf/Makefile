@@ -15,6 +15,8 @@ SRCS += event.c
 SRCS += stats.c
 SRCS += offrac.c
 SRCS += trace.c
+SRCS += slots.c
+SRCS += record.c
 
 APP  := fperf
 

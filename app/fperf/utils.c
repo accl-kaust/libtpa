@@ -77,6 +77,10 @@ int spawn_test_threads(void *(*func)(void *))
 		}
 		thread->curr_hugepg = 0;
 		thread->hugepg_off = 0;
+
+		if (ctx.record)
+			record_open(thread);
+
 		/* 10m is the max sock count tpa supports so far */
 		thread->sid_mappings = zmalloc_assert(10 * 1024 * 1024 * sizeof(struct connection *));
 
