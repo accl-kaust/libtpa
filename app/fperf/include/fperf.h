@@ -72,11 +72,14 @@ struct test_thread {
 	uint64_t rng; /* -r: state of the request data generator */
 } __attribute__((__aligned__(64)));
 
+/* -E sends every request in pieces of this size */
+#define TRACE_MESSAGE_SIZE	512
+
 /* one row of a -E trace */
 struct trace_entry {
 	uint64_t gap_ns;	/* wait after the previous response before sending */
 	uint32_t req_size;	/* bytes on the wire, FRAC header included */
-	uint32_t response_size;
+	uint32_t response_size;	/* what the unit answers to them */
 	uint16_t func;		/* the trace's app column */
 	uint16_t slot;
 };
@@ -170,6 +173,7 @@ void trace_load(const char *path);
 void trace_conn_init(struct connection *conn);
 void trace_on_send(struct connection *conn);
 void trace_on_response(struct connection *conn, uint64_t latency);
+void trace_wrong_answer(struct connection *conn);
 void trace_release(struct test_thread *thread);
 
 /* slots.c */

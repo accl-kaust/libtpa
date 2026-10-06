@@ -2,8 +2,9 @@
  * SPDX-License-Identifier: BSD-3-Clause
  *
  * Trace replay (-E): one connection sends the rows of a CSV trace to the
- * FPGA in order. Each row goes out sleep_time seconds after the response
- * to the row before it.
+ * FPGA in order, in 512-byte pieces. Each row goes out sleep_time seconds
+ * after the response to the row before it: request_size bytes, the FRAC
+ * header among them.
  */
 #include <stdio.h>
 #include <ctype.h>
@@ -62,12 +63,13 @@ static const char *parse_row(char *p, struct trace_entry *e)
 	p = end + 1;
 
 	p = parse_ulong(p, &req, ',');
-	if (!p || req == 0 || req > UINT32_MAX - FRAC_HDR_SIZE)
+	if (!p || req > UINT32_MAX)
 		return "bad request_size";
-	if (req % FRAC_LINE_SIZE)
-		return "request_size is not whole 64-byte lines";
+	if (req <= FRAC_HDR_SIZE || req % FRAC_LINE_SIZE)
+		return "request_size is not the header and whole 64-byte data lines";
 
-	if (!parse_ulong(p, &resp, '\0') || resp == 0 || resp > UINT32_MAX)
+	/* read, but not used: see the answer size below */
+	if (!parse_ulong(p, &resp, '\0'))
 		return "bad response_size";
 
 	/* the app column is a function; the slot map says where it runs */
@@ -77,16 +79,20 @@ static const char *parse_row(char *p, struct trace_entry *e)
 		return err;
 	}
 
-	if (func == NORM && req + FRAC_HDR_SIZE > FRAC_NORM_MAX_REQ_SIZE) {
+	if (func == NORM && req > FRAC_NORM_MAX_REQ_SIZE) {
 		snprintf(err, sizeof(err), "norm never finishes a request over %d bytes",
 			 FRAC_NORM_MAX_REQ_SIZE);
 		return err;
 	}
 
 	e->gap_ns = (uint64_t)(gap * 1e9 + 0.5);
-	/* request_size is the payload; the FRAC header goes in front of it */
-	e->req_size = req + FRAC_HDR_SIZE;
-	e->response_size = resp;
+	e->req_size = req;
+	/*
+	 * The unit decides the answer's size. With the header counted in
+	 * request_size, log and norm answer 64 bytes less than response_size
+	 * says, one line for each data line.
+	 */
+	e->response_size = func_response_size(func, req);
 	e->func = func;
 	e->slot = slot;
 
@@ -214,6 +220,21 @@ void trace_on_response(struct connection *conn, uint64_t latency)
 		trace_send(conn);
 	else
 		conn->trace_wait = 1;
+}
+
+/*
+ * The answer to the current row is longer than its unit answers, so the
+ * replay cannot go on: say which row, and end it.
+ */
+void trace_wrong_answer(struct connection *conn)
+{
+	const struct trace_entry *e = &ctx.trace[conn->trace_idx];
+
+	if (!ctx.trace_done)
+		fprintf(stderr, "trace: %s:%u: app %u in slot %u got %zu answer bytes to its %u-byte "
+			"request, not %u: stopping\n", ctx.trace_file, conn->trace_idx + 2, e->func,
+			e->slot, conn->read.off, e->req_size, e->response_size);
+	ctx.trace_done = 1;
 }
 
 /* send the waiting row once its sleep_time has passed */

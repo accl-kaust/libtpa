@@ -45,3 +45,6 @@ $(OBJS): $(OBJ_DIR)/%.o: %.c | OUT_DIRS
 
 OUT_DIRS:
 	$(Q)mkdir -p $(OBJ_DIR) $(BIN_DIR)
+
+# the headers each object was built from (-MMD), so changing one rebuilds them
+-include $(DEPS)
