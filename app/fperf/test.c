@@ -90,6 +90,11 @@ static void on_rr_read_done(struct connection *conn)
 		/* before the check, so an answer of the wrong length is on record */
 		if (ctx.record)
 			record_response(conn);
+		if (ctx.trace_file && conn->read.off != conn->read.budget) {
+			trace_wrong_answer(conn);
+			conn->read.off = 0;
+			return;
+		}
 	        assert((conn->read.off) == (conn->read.budget));
 	        latency = update_latency(conn);
 		if (conn->test == TEST_CRR){

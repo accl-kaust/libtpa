@@ -40,9 +40,11 @@ void usage(void)
 			"  -D log dir        stores log files in specified director\n"
 			"  -E trace_file     replays a CSV trace (app,sleep_time,request_size,response_size)\n"
 			"                    on the FPGA: each row goes to the slot of its app, sleep_time\n"
-			"                    seconds after the previous response. Needs -t rr -Z 1 -n 1 -C 1,\n"
-			"                    replaces -F/-K/-X/-R, and runs to the end of the trace unless -d\n"
-			"                    is given\n"
+			"                    seconds after the previous response, as request_size bytes,\n"
+			"                    the header included, in 512-byte pieces. The answer size is\n"
+			"                    the unit's, not response_size. Needs -t rr -Z 1 -n 1 -C 1,\n"
+			"                    replaces -F/-K/-X/-R and -m, and runs to the end of the trace\n"
+			"                    unless -d is given\n"
 			"  -M slot_map       names the unit in each FPGA slot, one \"<slot> <unit>\" line each\n"
 			"                    (top_k, log, norm, cnn), for -E and -r (default: 0 top_k, 1 log,\n"
 			"                    2 cnn, 3 norm)\n"
@@ -88,6 +90,7 @@ int parse_options(int argc, char **argv)
 	int opt;
 	int has_opt_c = 0;
 	int has_opt_d = 0;
+	int has_opt_m = 0;
 
 	memset(&ctx, 0, sizeof(ctx));
 
@@ -149,6 +152,7 @@ int parse_options(int argc, char **argv)
 
 		case 'm':
 			PARSE_NUM(ctx.message_size, optarg, NUM_TYPE_SIZE, "message size");
+			has_opt_m = 1;
 			break;
 
 		case 'n':
@@ -249,6 +253,16 @@ int parse_options(int argc, char **argv)
 	if (ctx.is_client && ctx.test < 0) {
 		fprintf(stderr, "error: missing mandatory option: -t test\n\n");
 		usage();
+	}
+
+	/* -E sends every request in 512-byte pieces */
+	if (ctx.trace_file) {
+		if (has_opt_m && ctx.message_size != TRACE_MESSAGE_SIZE) {
+			fprintf(stderr, "error: -E sends %d-byte pieces: leave -m out or make it %d\n\n",
+				TRACE_MESSAGE_SIZE, TRACE_MESSAGE_SIZE);
+			usage();
+		}
+		ctx.message_size = TRACE_MESSAGE_SIZE;
 	}
 
 	if (ctx.message_size <= 0 || ctx.message_size > MAX_MESSAGE_SIZE) {
