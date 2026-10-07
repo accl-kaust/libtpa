@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: BSD-3-Clause
+// Copyright (c) 2026, Krishnan Iyer
+
 // Command checkrecord checks the answers fperf -r recorded.  For every request
 // it works out what the unit in the request's slot must answer and compares
 // that with the answer the FPGA gave, word by word.
