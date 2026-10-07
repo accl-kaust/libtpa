@@ -1,5 +1,6 @@
 /*
  * SPDX-License-Identifier: BSD-3-Clause
+ * Copyright (c) 2026, Krishnan Iyer
  *
  * Trace replay (-E): one connection sends the rows of a CSV trace to the
  * FPGA in order, in 512-byte pieces. Each row goes out sleep_time seconds

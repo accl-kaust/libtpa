@@ -1,3 +1,7 @@
+> This is a fork of [bytedance/libtpa](https://github.com/bytedance/libtpa)
+> that adds the fperf benchmark (`app/fperf`). It is not maintained or
+> endorsed by ByteDance. The rest of this README is the upstream one.
+
 Libtpa(Transport Protocol Acceleration) is a DPDK based userspace TCP
 stack implementation.
 

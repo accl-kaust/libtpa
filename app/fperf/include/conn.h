@@ -1,6 +1,7 @@
 /*
  * SPDX-License-Identifier: BSD-3-Clause
  * Copyright (c) 2021-2023, ByteDance Ltd. and/or its Affiliates
+ * Copyright (c) 2025-2026, Krishnan Iyer
  * Author: Yuanhan Liu <liuyuanhan.131@bytedance.com>
  */
 #ifndef _CONN_H_

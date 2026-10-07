@@ -1,5 +1,6 @@
 /*
  * SPDX-License-Identifier: BSD-3-Clause
+ * Copyright (c) 2026, Krishnan Iyer
  *
  * Recording (-r): requests carry random data suited to the unit in their
  * slot, and every request and response is written to

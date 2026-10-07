@@ -1,5 +1,6 @@
 /*
  * SPDX-License-Identifier: BSD-3-Clause
+ * Copyright (c) 2026, Krishnan Iyer
  *
  * The unit loaded in each FPGA slot (-M): -E sends a trace row to the slot
  * running its function, and -r fills a request with data for the unit in
